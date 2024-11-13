@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Book WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .order-book { display: flex; justify-content: space-around; }
+        .order-side { width: 45%; }
+        .order-side table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: center; border: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .order-form { margin-bottom: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Order Book</h1>
+   
+    <div class="order-form">
+        <label for="price">Price:</label>
+        <input type="number" id="price" value="100">
+       
+        <label for="size">Size:</label>
+        <input type="number" id="size" value="1">
+
+
+        <button onclick="submitOrder('buy')">Buy</button>
+        <button onclick="submitOrder('sell')">Sell</button>
+    </div>
+
+
+    <div class="order-book">
+        <div class="order-side">
+            <h2>Bids</h2>
+            <table>
+                <thead>
+                    <tr><th>Price</th><th>Size</th></tr>
+                </thead>
+                <tbody id="bids"></tbody>
+            </table>
+        </div>
+        <div class="order-side">
+            <h2>Asks</h2>
+            <table>
+                <thead>
+                    <tr><th>Price</th><th>Size</th></tr>
+                </thead>
+                <tbody id="asks"></tbody>
+            </table>
+        </div>
+    </div>
+   
+    <script>
+        const socket = new WebSocket("ws://localhost:5000/ws");
+
+
+        socket.onmessage = (event) => {
+            const orderBookData = JSON.parse(event.data);
+            updateOrderBook(orderBookData);
+        };
+
+
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            alert("WebSocket connection error. Please try again later.");
+        };
+
+
+        function updateOrderBook(data) {
+            const bids = document.getElementById("bids");
+            const asks = document.getElementById("asks");
+
+
+            bids.innerHTML = "";
+            asks.innerHTML = "";
+
+
+            data.bids.forEach(([price, size]) => {
+                const row = `<tr><td>${price}</td><td>${size}</td></tr>`;
+                bids.innerHTML += row;
+            });
+
+
+            data.asks.forEach(([price, size]) => {
+                const row = `<tr><td>${price}</td><td>${size}</td></tr>`;
+                asks.innerHTML += row;
+            });
+        }
+
+
+        function submitOrder(side) {
+            const price = parseFloat(document.getElementById("price").value);
+            const size = parseFloat(document.getElementById("size").value);
+
+
+            if (!price || !size) {
+                alert("Please enter valid price and size.");
+                return;
+            }
+
+
+            const order = {
+                action: "add",
+                price: price,
+                size: size,
+                side: side
+            };
+            socket.send(JSON.stringify(order));
+
+
+            document.getElementById("price").value = "";
+            document.getElementById("size").value = "";
+        }
+    </script>
+</body>
+</html>
